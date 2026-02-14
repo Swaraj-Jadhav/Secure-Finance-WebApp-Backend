@@ -22,7 +22,7 @@ const getProfile = (userId) => {
   };
 };
 
-const getBalance = () => {
+const getBalance = (userId) => {
   if (!accountDB || accountDB.id !== userId) {
     throw new Error("Account not found");
   }

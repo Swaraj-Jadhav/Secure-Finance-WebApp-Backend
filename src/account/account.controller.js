@@ -40,8 +40,20 @@ const updateAccount = (req, res) => {
 };
 
 const getBalance = (req, res) => {
-  const balance = accountService.getBalance();
-  res.json(balance);
+ 
+  try {
+    const balance = accountService.getBalance(DEMO_USER_ID);
+    res.status(200).json({
+      success: true,
+      data: balance,
+    });
+
+  } catch (error) {
+    res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 const deactivateAccount = (req, res) => {
