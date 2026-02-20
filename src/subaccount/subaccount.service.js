@@ -178,23 +178,46 @@ async function getSubaccount(mainAccountId, subAccountId) {
 
   return JSON.parse(decrypted);
 }
-
-
-
+ 
 async function deleteSubaccount(mainAccountId, subAccountId) {
 
+  // 1️⃣ Find subaccount in local DB
   const index = subaccountMappingDB.findIndex(
     (s) =>
       s.subAccountId === subAccountId &&
       s.mainAccountId === mainAccountId
   );
 
-  if (index === -1) throw new Error("Subaccount not found");
+  if (index === -1) {
+    throw new Error("Subaccount not found");
+  }
 
+  const mapping = subaccountMappingDB[index];
+
+  // 2️⃣ REAL delete from Pinata (unpin by CID)
+  try {
+    await axios.delete(
+      `https://api.pinata.cloud/pinning/unpin/${mapping.cid}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PINATA_JWT}`,
+        },
+      }
+    );
+  } catch (error) {
+    console.warn(
+      "Pinata unpin failed:",
+      error.response?.data || error.message
+    );
+  }
+
+  // 3️⃣ Delete from local DB
   subaccountMappingDB.splice(index, 1);
 
-  return { message: "Subaccount deleted" };
+  return { message: "Subaccount deleted successfully" };
 }
+
+
 
 
 module.exports = {
@@ -202,4 +225,6 @@ module.exports = {
   listSubaccounts,
   getSubaccount,
   deleteSubaccount,
+
 };
+
