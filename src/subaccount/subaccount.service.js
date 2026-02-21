@@ -181,7 +181,6 @@ async function getSubaccount(mainAccountId, subAccountId) {
  
 async function deleteSubaccount(mainAccountId, subAccountId) {
 
-  // 1️⃣ Find subaccount in local DB
   const index = subaccountMappingDB.findIndex(
     (s) =>
       s.subAccountId === subAccountId &&
@@ -194,7 +193,6 @@ async function deleteSubaccount(mainAccountId, subAccountId) {
 
   const mapping = subaccountMappingDB[index];
 
-  // 2️⃣ REAL delete from Pinata (unpin by CID)
   try {
     await axios.delete(
       `https://api.pinata.cloud/pinning/unpin/${mapping.cid}`,
@@ -211,7 +209,6 @@ async function deleteSubaccount(mainAccountId, subAccountId) {
     );
   }
 
-  // 3️⃣ Delete from local DB
   subaccountMappingDB.splice(index, 1);
 
   return { message: "Subaccount deleted successfully" };
