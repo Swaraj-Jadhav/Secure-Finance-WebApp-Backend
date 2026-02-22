@@ -2,23 +2,14 @@ const accountService = require("./account.service");
 
 const DEMO_USER_ID = "user_123"; // Simulated logged in user
 
-const getProfile = (req, res) => {
+const getProfile = async (req, res) => {
   try {
-    const profile = accountService.getProfile(DEMO_USER_ID);
-
-    res.status(200).json({
-      success: true,
-      data: profile,
-    });
-
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      message: error.message,
-    });
+    const data = await accountService.getProfile(req.params.userId);
+    res.json(data);
+  } catch (err) {
+    res.status(404).json({ error: err.message });
   }
 };
-
 const updateAccount = (req, res) => {
   try {
     const updated = accountService.updateAccount(
