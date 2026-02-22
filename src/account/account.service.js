@@ -1,22 +1,52 @@
-const getProfile = () => {
+let accountDB = {
+  id: "user_123",
+  name: "Swaraj",
+  email: "swaraj@email.com",
+  walletAddress: "0xABC123",
+  isActive: true,
+  createdAt: new Date(),
+  balance: 10.5,
+};
+
+const getProfile = (userId) => {
+  if (!accountDB || accountDB.id !== userId) {
+    throw new Error("Account not found");
+  }
+
   return {
-    id: "user_123",
-    name: "Demo User",
-    wallet: "0xABC123",
+    id: accountDB.id,
+    name: accountDB.name,
+    email: accountDB.email,
+    walletAddress: accountDB.walletAddress,
+    createdAt: accountDB.createdAt,
   };
 };
 
-const getBalance = () => {
+const getBalance = (userId) => {
+  if (!accountDB || accountDB.id !== userId) {
+    throw new Error("Account not found");
+  }
   return {
-    balance: 10.5,
-    currency: "ETH",
+    balance: accountDB.balance,
   };
 };
 
-const updateAccount = (data) => {
+const updateAccount = (userId, updateData) => {
+  if (!accountDB || accountDB.id !== userId) {
+    throw new Error("Account not found");
+  }
+
+  const allowedFields = ["name", "email"];
+
+  allowedFields.forEach((field) => {
+    if (updateData[field] !== undefined) {
+      accountDB[field] = updateData[field];
+    }
+  });
+
   return {
     message: "Account updated successfully",
-    updatedData: data,
+    profile: getProfile(userId),
   };
 };
 
