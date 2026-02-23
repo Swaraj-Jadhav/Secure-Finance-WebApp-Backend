@@ -19,7 +19,7 @@ const pinJSONToIPFS = async (jsonData) => {
 const fetchFromIPFS = async (cid) => {
     try {
         // Pulling from .env
-        const gateway = process.env.PINATA_GATEWAY_URL; 
+        const gateway = process.env.PINATA_GATEWAY; 
         const res = await axios.get(`${gateway}/ipfs/${cid}`);
         return res.data;
     } catch (error) {
