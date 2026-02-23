@@ -8,10 +8,8 @@ const verifyWallet = async (req, res) => {
             return res.status(400).json({ error: "Missing verification parameters" });
         }
 
-        // Recover the address from the cryptographic signature
         const recoveredAddress = ethers.verifyMessage(message, signature);
 
-        // Check if the recovered address matches the claimed address
         if (recoveredAddress.toLowerCase() === walletAddress.toLowerCase()) {
             res.status(200).json({ verified: true, message: "Wallet successfully verified" });
         } else {

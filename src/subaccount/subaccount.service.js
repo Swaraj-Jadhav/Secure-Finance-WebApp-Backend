@@ -10,11 +10,7 @@ const PINATA_GATEWAY = process.env.PINATA_GATEWAY;
 const PINATA_UPLOAD_URL =
   "https://api.pinata.cloud/pinning/pinJSONToIPFS";
 
-/*
-========================================
-SIMULATED DB 
-========================================
-*/
+
 let subaccountMappingDB = [];
 
 
@@ -51,11 +47,7 @@ function decryptData(encryptedData, key) {
   return decrypted.toString();
 }
 
-/*
-========================================
-PINATA UPLOAD
-========================================
-*/
+
 
 async function uploadToPinata(jsonData) {
   try {
@@ -83,11 +75,7 @@ async function uploadToPinata(jsonData) {
   }
 }
 
-/*
-========================================
-PINATA FETCH 
-========================================
-*/
+
 
 async function fetchFromGateway(cid) {
   try {
@@ -103,11 +91,7 @@ async function fetchFromGateway(cid) {
   }
 }
 
-/*
-========================================
-CREATE SUBACCOUNT
-========================================
-*/
+
 
 async function createSubaccount(mainAccountId, subData) {
 

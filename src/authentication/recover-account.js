@@ -10,18 +10,16 @@ const recoverAccount = async (req, res) => {
             return res.status(400).json({ error: "Need at least 3 valid CIDs to initiate recovery" });
         }
 
-        // 1. Fetch existing shares using the 3 valid CIDs
         const sharePromises = cids.slice(0, 3).map(cid => fetchFromIPFS(cid));
         const fetchedData = await Promise.all(sharePromises);
         const oldShares = fetchedData.map(data => data.share);
 
-        // 2. Reconstruct the original secret hash
+     
         const originalHash = reconstructHash(oldShares);
 
-        // 3. Re-shred the hash into 5 BRAND NEW shares
+        
         const newShares = secrets.share(originalHash, 5, 3); 
 
-        // 4. Pin the new shares to IPFS
         const newCidPromises = newShares.map(share => 
             pinJSONToIPFS({ pinataContent: { share, walletAddress } })
         );

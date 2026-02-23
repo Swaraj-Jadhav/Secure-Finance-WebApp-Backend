@@ -1,10 +1,5 @@
 const MainAccount = require("../models/Account.model");
 
-/*
-====================================
-GET PROFILE
-====================================
-*/
 const getProfile = async (userId) => {
   const account = await MainAccount.findOne({ userId });
 
@@ -21,11 +16,7 @@ const getProfile = async (userId) => {
   };
 };
 
-/*
-====================================
-GET BALANCE
-====================================
-*/
+
 const getBalance = async (userId) => {
   const account = await MainAccount.findOne({ userId });
 
@@ -38,11 +29,7 @@ const getBalance = async (userId) => {
   };
 };
 
-/*
-====================================
-UPDATE ACCOUNT
-====================================
-*/
+
 const updateAccount = async (userId, updateData) => {
   const account = await MainAccount.findOne({ userId });
 
@@ -72,11 +59,7 @@ const updateAccount = async (userId, updateData) => {
   };
 };
 
-/*
-====================================
-DEACTIVATE ACCOUNT
-====================================
-*/
+
 const deactivateAccount = async (userId) => {
   const account = await MainAccount.findOne({ userId });
 

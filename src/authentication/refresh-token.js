@@ -7,13 +7,13 @@ const refreshToken = (req, res) => {
         return res.status(401).json({ error: "Refresh token required" });
     }
 
-    // CHANGED: Using process.env.REFRESH_SECRET
+ 
     jwt.verify(refreshToken, process.env.REFRESH_SECRET, (err, decoded) => {
         if (err) {
             return res.status(403).json({ error: "Invalid or expired refresh token" });
         }
 
-        // CHANGED: Using process.env.JWT_SECRET
+ 
         const newAccessToken = jwt.sign(
             { walletAddress: decoded.walletAddress }, 
             process.env.JWT_SECRET, 

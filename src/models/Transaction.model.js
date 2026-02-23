@@ -36,11 +36,11 @@ const transactionSchema = new mongoose.Schema(
     },
 
     blockchainTxHash: {
-      type: String, // optional for future smart contract integration
+      type: String, 
     },
 
     metadataCid: {
-      type: String, // optional: store transaction metadata on IPFS
+      type: String, 
     },
   },
   { timestamps: true }

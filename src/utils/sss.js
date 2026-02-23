@@ -7,11 +7,7 @@ const crypto = require('crypto');
  * @returns {Array<string>} An array of 5 hex-encoded shares
  */
 const shredPassword = (password) => {
-    // 1. Hash the password using SHA-256 for standard security
     const hash = crypto.createHash('sha256').update(password).digest('hex');
-    
-    // 2. Split the hex hash into 5 shares, requiring a threshold of 3
-    // secrets.js requires the input to be a hex string
     const shares = secrets.share(hash, 5, 3); 
     
     return shares;
@@ -23,7 +19,6 @@ const shredPassword = (password) => {
  * @returns {string} The reconstructed SHA-256 hash
  */
 const reconstructHash = (sharesArray) => {
-    // Combine the shares to reveal the original secret
     return secrets.combine(sharesArray);
 };
 
