@@ -4,7 +4,6 @@ const pinJSONToIPFS = async (jsonData) => {
     try {
         const res = await axios.post('https://api.pinata.cloud/pinning/pinJSONToIPFS', jsonData, {
             headers: {
-                // Pulling from .env
                 'Authorization': `Bearer ${process.env.PINATA_JWT}`, 
                 'Content-Type': 'application/json'
             }
@@ -18,7 +17,6 @@ const pinJSONToIPFS = async (jsonData) => {
 
 const fetchFromIPFS = async (cid) => {
     try {
-        // Pulling from .env
         const gateway = process.env.PINATA_GATEWAY; 
         const res = await axios.get(`${gateway}/ipfs/${cid}`);
         return res.data;
