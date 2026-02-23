@@ -15,8 +15,8 @@ const login = async (req, res) => {
         const sharePromises = cids.map(cid => fetchFromIPFS(cid));
         const fetchedData = await Promise.all(sharePromises);
         
-        const sharesArray = fetchedData.map(data => {
-            if (data.walletAddress !== walletAddress) throw new Error("Wallet mismatch on CID payload");
+        const sharesArray = fetchedData.map(data => { 
+            if (data.walletAddress!== walletAddress) throw new Error("Wallet mismatch on CID payload");
             return data.share;
         });
         

@@ -21,7 +21,7 @@ const registerAccount = async (req, res) => {
         
         // 3. Return CIDs for the user to store safely
         res.status(201).json({
-            message: "Account created. Store these 5 CIDs securely. You need 3 to login.",
+            message: "Account created. Store these 5 CIDs securely. ",
             cids: cids
         });
     } catch (error) {
