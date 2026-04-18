@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal | ShardAuth Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #05060b; --card: #0c0e1a; --card2: #0f1120;
+            --accent: #00e5ff; --accent2: #0099cc;
+            --green: #10b981; --danger: #ef4444;
+            --warn: #f59e0b;
+            --border: rgba(0, 229, 255, 0.12);
+            --border2: rgba(0, 229, 255, 0.06);
+            --text: #e2e8f0; --muted: #4a5568; --muted2: #64748b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: 'IBM Plex Mono', monospace;
+            display: flex; height: 100vh; overflow: hidden;
+        }
+
+        /* ── Scanline overlay ── */
+        body::before {
+            content: ''; pointer-events: none; position: fixed; inset: 0; z-index: 9999;
+            background: repeating-linear-gradient(
+                0deg, transparent, transparent 2px,
+                rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px
+            );
+        }
+
+        /* ── Sidebar ── */
+        nav {
+            width: 220px; min-width: 220px;
+            border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; padding: 28px 16px; gap: 36px;
+            background: linear-gradient(180deg, rgba(0,229,255,0.02) 0%, transparent 100%);
+        }
+        .logo {
+            font-family: 'Syne'; font-weight: 800; color: var(--accent);
+            font-size: 18px; letter-spacing: 2px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: blink 1.4s infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+        .nav-links { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+        .nav-links li {
+            padding: 11px 14px; border-radius: 8px; cursor: pointer;
+            transition: all 0.18s; font-size: 12px; color: var(--muted2);
+            display: flex; align-items: center; gap: 10px; letter-spacing: 0.5px;
+        }
+        .nav-links li:hover { background: rgba(0,229,255,0.06); color: var(--accent); }
+        .nav-links li.active { background: rgba(0,229,255,0.08); color: var(--accent); border-left: 2px solid var(--accent); }
+        .nav-links li .nav-icon { font-size: 14px; opacity: 0.8; }
+
+        .nav-bottom { margin-top: auto; }
+        .status-pill {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 10px; color: var(--muted2); padding: 10px 14px;
+            background: rgba(16,185,129,0.06); border-radius: 8px;
+            border: 1px solid rgba(16,185,129,0.15);
+        }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
+
+        /* ── Main ── */
+        main { flex: 1; overflow-y: auto; padding: 36px 40px; }
+        main::-webkit-scrollbar { width: 4px; }
+        main::-webkit-scrollbar-track { background: transparent; }
+        main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        /* ── Header ── */
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 36px; }
+        .header h1 { font-family: 'Syne'; font-size: 26px; font-weight: 800; letter-spacing: 1px; }
+        .header-sub { color: var(--muted2); font-size: 11px; margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+        .id-badge {
+            background: rgba(0,229,255,0.06); border: 1px solid var(--border);
+            padding: 3px 10px; border-radius: 20px; font-size: 10px; color: var(--accent);
+        }
+
+        /* ── Stats ── */
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+        .stat-card {
+            background: var(--card); border: 1px solid var(--border2); padding: 22px 24px;
+            border-radius: 12px; position: relative; overflow: hidden; transition: border-color 0.2s;
+        }
+        .stat-card:hover { border-color: var(--border); }
+        .stat-card::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.4;
+        }
+        .stat-label { font-size: 10px; text-transform: uppercase; color: var(--muted2); letter-spacing: 1.5px; }
+        .stat-val { font-size: 26px; font-weight: 600; margin-top: 10px; color: var(--accent); font-family: 'Syne'; }
+        .stat-val.green { color: var(--green); }
+        .stat-val.warn { color: var(--warn); }
+        .stat-sub { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+        /* ── Section split ── */
+        .section-split { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+        .sub-container {
+            background: var(--card); border-radius: 12px; border: 1px solid var(--border2);
+            padding: 24px; overflow: hidden;
+        }
+        .section-title {
+            font-size: 13px; font-weight: 600; margin-bottom: 20px; color: var(--text);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .section-title .count-badge {
+            background: rgba(0,229,255,0.08); color: var(--accent);
+            font-size: 10px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border);
+        }
+
+        /* ── Sub-account list ── */
+        #sub-list { display: flex; flex-direction: column; gap: 0; min-height: 60px; }
+        .sub-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: background 0.15s; cursor: default;
+            animation: fadeSlide 0.3s ease forwards;
+        }
+        @keyframes fadeSlide { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+        .sub-item:last-child { border-bottom: none; }
+        .sub-item:hover { background: rgba(0,229,255,0.02); border-radius: 6px; }
+
+        .sub-name { font-weight: 600; font-size: 13px; color: var(--text); }
+        .sub-meta { display: flex; gap: 8px; align-items: center; margin-top: 5px; flex-wrap: wrap; }
+        .cid-tag {
+            font-size: 9px; color: var(--muted2); background: rgba(0,0,0,0.5);
+            padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);
+            letter-spacing: 0.3px;
+        }
+        .balance-tag {
+            font-size: 9px; color: var(--green); background: rgba(16,185,129,0.08);
+            padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(16,185,129,0.15);
+        }
+
+        .sub-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+        /* ── Buttons ── */
+        .btn {
+            background: var(--accent); color: #000; border: none;
+            padding: 10px 20px; border-radius: 7px;
+            font-family: 'IBM Plex Mono'; font-weight: 600; font-size: 12px;
+            cursor: pointer; letter-spacing: 0.5px; transition: all 0.2s;
+        }
+        .btn:hover { background: #33ecff; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,229,255,0.2); }
+        .btn:active { transform: translateY(0); }
+        .btn-sm {
+            padding: 6px 12px; font-size: 10px; font-family: 'IBM Plex Mono'; font-weight: 600;
+            background: transparent; border: 1px solid var(--accent); color: var(--accent);
+            border-radius: 5px; cursor: pointer; letter-spacing: 0.5px; transition: all 0.15s;
+        }
+        .btn-sm:hover { background: rgba(0,229,255,0.1); }
+        .btn-sm.danger { border-color: var(--danger); color: var(--danger); }
+        .btn-sm.danger:hover { background: rgba(239,68,68,0.1); }
+
+        /* ── Empty state ── */
+        .empty-state {
+            text-align: center; padding: 40px 20px; color: var(--muted2);
+        }
+        .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+        .empty-text { font-size: 12px; line-height: 1.7; }
+
+        /* ── Toast ── */
+        #toast-container { position: fixed; bottom: 28px; right: 28px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .toast {
+            background: var(--card2); border: 1px solid var(--border);
+            padding: 14px 20px; border-radius: 10px; font-size: 12px;
+            max-width: 320px; animation: toastIn 0.3s ease; display: flex; align-items: flex-start; gap: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .toast.success { border-color: rgba(16,185,129,0.3); }
+        .toast.error { border-color: rgba(239,68,68,0.3); }
+        .toast.info { border-color: var(--border); }
+        .toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+        .toast-msg { color: var(--text); line-height: 1.5; }
+        .toast-title { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+        @keyframes toastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            z-index: 500; display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .modal {
+            background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+            padding: 32px; width: 420px; max-width: 90vw;
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        .modal h3 { font-family: 'Syne'; font-size: 18px; margin-bottom: 6px; }
+        .modal-sub { font-size: 11px; color: var(--muted2); margin-bottom: 24px; line-height: 1.6; }
+        .form-group { margin-bottom: 18px; }
+        .form-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted2); margin-bottom: 8px; display: block; }
+        .form-input {
+            width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border);
+            color: var(--text); font-family: 'IBM Plex Mono'; font-size: 13px;
+            padding: 11px 14px; border-radius: 7px; outline: none; transition: border-color 0.2s;
+        }
+        .form-input:focus { border-color: var(--accent); }
+        .form-input::placeholder { color: var(--muted); }
+        .modal-actions { display: flex; gap: 12px; margin-top: 8px; justify-content: flex-end; }
+        .btn-ghost {
+            padding: 10px 18px; font-size: 12px; font-family: 'IBM Plex Mono'; font-weight: 600;
+            background: transparent; border: 1px solid var(--border); color: var(--muted2);
+            border-radius: 7px; cursor: pointer; transition: all 0.15s;
+        }
+        .btn-ghost:hover { border-color: var(--muted2); color: var(--text); }
+
+        /* ── Decrypt view ── */
+        .decrypt-field { background: rgba(0,0,0,0.4); border: 1px solid var(--border2); border-radius: 6px; padding: 14px; margin-bottom: 10px; }
+        .decrypt-key { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted2); margin-bottom: 4px; }
+        .decrypt-val { font-size: 12px; color: var(--accent); word-break: break-all; }
+
+        /* ── Chart ── */
+        #spendingChart { max-height: 220px; }
+
+        /* ── Loading spinner ── */
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,229,255,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo"><div class="logo-dot"></div>SHARD_VAULT</div>
+    <ul class="nav-links">
+        <li class="active"><span class="nav-icon">⬡</span> Dashboard</li>
+        <li onclick="scrollToSubs()"><span class="nav-icon">◈</span> Sub-Accounts</li>
+        <li onclick="showIpfsInfo()"><span class="nav-icon">⬢</span> IPFS Explorer</li>
+    </ul>
+    <div class="nav-bottom">
+        <div class="status-pill"><div class="status-dot"></div>AES-256-CBC ACTIVE</div>
+        <ul class="nav-links" style="margin-top:12px">
+            <li onclick="logout()" style="color: var(--danger); margin-top:0"><span class="nav-icon">⏻</span> Logout</li>
+        </ul>
+    </div>
+</nav>
+
+<main id="main-content">
+    <div class="header">
+        <div>
+            <h1>Spending Dashboard</h1>
+            <div class="header-sub">
+                <div class="id-badge" id="wallet-display">ID: user_123</div>
+                <span style="color:var(--muted)">·</span>
+                <span id="session-time" style="color:var(--muted)">Session active</span>
+            </div>
+        </div>
+        <button class="btn" onclick="openCreateModal()">+ Create Sub-Account</button>
+    </div>
+
+    <div class="grid">
+        <div class="stat-card">
+            <div class="stat-label">Aggregated Balance</div>
+            <div class="stat-val" id="total-balance">$0.00</div>
+            <div class="stat-sub" id="balance-sub">Across all shards</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">IPFS Shard Count</div>
+            <div class="stat-val" id="shard-count">0</div>
+            <div class="stat-sub" id="shard-sub">Active shards</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Security Protocol</div>
+            <div class="stat-val green">AES-256</div>
+            <div class="stat-sub">CBC mode · Per-shard keys</div>
+        </div>
+    </div>
+
+    <div class="section-split">
+        <div class="sub-container" id="subs-section">
+            <div class="section-title">
+                Distributed Assets
+                <span class="count-badge" id="count-badge">0 shards</span>
+            </div>
+            <div id="sub-list">
+                <div class="empty-state">
+                    <div class="empty-icon">⬡</div>
+                    <div class="empty-text">No sub-accounts yet.<br>Create one to distribute your assets across IPFS shards.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sub-container">
+            <div class="section-title">Spending Analytics</div>
+            <canvas id="spendingChart"></canvas>
+            <div id="chart-empty" style="text-align:center;padding:40px 0;color:var(--muted2);font-size:11px;display:none">
+                No spending data yet
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Create Modal -->
+<div id="create-modal" class="modal-overlay" style="display:none" onclick="closeModalOnBg(event)">
+    <div class="modal">
+        <h3>Deploy New Shard</h3>
+        <div class="modal-sub">Creates an encrypted sub-account on IPFS. Each shard gets a unique AES-256 key stored in your local vault.</div>
+        <div class="form-group">
+            <label class="form-label">Sub-Account Name</label>
+            <input class="form-input" id="create-name" type="text" placeholder="e.g. Travel Fund" autocomplete="off" />
+        </div>
+        <div class="form-group">
+            <label class="form-label">Initial Deposit (USD)</label>
+            <input class="form-input" id="create-balance" type="number" placeholder="0.00" min="0" step="0.01" />
+        </div>
+        <div class="modal-actions">
+            <button class="btn-ghost" onclick="closeCreateModal()">Cancel</button>
+            <button class="btn" id="create-btn" onclick="handleCreateSub()">Deploy Shard</button>
+        </div>
+    </div>
+</div>
+
+<!-- Decrypt / View Modal -->
+<div id="view-modal" class="modal-overlay" style="display:none" onclick="closeModalOnBg(event)">
+    <div class="modal">
+        <h3>🔓 Decrypted Shard Data</h3>
+        <div class="modal-sub" id="view-timestamp"></div>
+        <div id="view-fields"></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="document.getElementById('view-modal').style.display='none'">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+//  CONFIG
+// ──────────────────────────────────────────────
+const BASE_URL = '/api/subaccounts';  // matches app.use("/api/subaccounts", subaccountRoutes) in app.js
+let chartInstance = null;
+
+// ──────────────────────────────────────────────
+//  API LAYER  — thin wrappers over your real routes
+//  Routes (from subaccount.routes.js):
+//    POST   /api/subaccount/create   body: { name, balance }  → { success, data: { subAccountId, cid } }
+//    GET    /api/subaccount/list                              → { success, data: [...mappings] }
+//    GET    /api/subaccount/:id                               → { success, data: decryptedPayload }
+//    DELETE /api/subaccount/:id                               → { success, data: { message } }
+// ──────────────────────────────────────────────
+
+async function apiCreateSubaccount(subData) {
+    const res = await fetch(`${BASE_URL}/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subData)
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Create failed');
+    return json.data;   // { subAccountId, cid }
+}
+
+async function apiListSubaccounts() {
+    const res = await fetch(`${BASE_URL}/list`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'List failed');
+    return json.data;   // array of mapping objects from subaccountMappingDB
+}
+
+async function apiGetSubaccount(subAccountId) {
+    const res = await fetch(`${BASE_URL}/${subAccountId}`);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Not found');
+    return json.data;   // decrypted payload: { subAccountId, mainAccountId, name, balance, createdAt, … }
+}
+
+async function apiDeleteSubaccount(subAccountId) {
+    const res = await fetch(`${BASE_URL}/${subAccountId}`, { method: 'DELETE' });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Delete failed');
+    return json.data;   // { message: "Subaccount deleted successfully" }
+}
+
+// ──────────────────────────────────────────────
+//  DASHBOARD INIT
+// ──────────────────────────────────────────────
+async function fetchData() {
+    document.getElementById('wallet-display').textContent = `ID: user_123`;
+    try {
+        const subs = await apiListSubaccounts();
+        renderSubs(subs);
+        updateStats(subs);
+        renderChart(subs);
+    } catch (err) {
+        toast('Sync failed', err.message, 'error');
+    }
+}
+
+// ──────────────────────────────────────────────
+//  STATS
+// ──────────────────────────────────────────────
+function updateStats(subs) {
+    // list endpoint returns raw mapping rows — balance lives in encrypted IPFS payload,
+    // so we show shard count and last-created time; balance is shown after reconstruct
+    document.getElementById('total-balance').textContent = '—';
+    document.getElementById('balance-sub').textContent = 'Reconstruct a shard to view balance';
+    document.getElementById('shard-count').textContent = subs.length;
+    document.getElementById('count-badge').textContent = `${subs.length} shard${subs.length !== 1 ? 's' : ''}`;
+    document.getElementById('shard-sub').textContent = subs.length ? `Last: ${timeSince(subs[subs.length-1].createdAt)}` : 'Active shards';
+}
+
+// ──────────────────────────────────────────────
+//  SUB-ACCOUNT LIST RENDER
+// ──────────────────────────────────────────────
+function renderSubs(subs) {
+    const list = document.getElementById('sub-list');
+    list.innerHTML = '';
+    if (!subs.length) {
+        list.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">⬡</div>
+                <div class="empty-text">No sub-accounts yet.<br>Create one to distribute your assets across IPFS shards.</div>
+            </div>`;
+        return;
+    }
+    subs.forEach((sub, i) => {
+        // Real API list shape: { subAccountId, mainAccountId, cid, keyHash, createdAt }
+        // name/balance are inside the encrypted IPFS payload — only available after reconstruct
+        const el = document.createElement('div');
+        el.className = 'sub-item';
+        el.style.animationDelay = `${i * 0.05}s`;
+        const shortId = sub.subAccountId ? sub.subAccountId.slice(0, 12) + '…' : '—';
+        const shortCid = sub.cid ? sub.cid.slice(0, 22) + '…' : '—';
+        const created = sub.createdAt ? timeSince(sub.createdAt) : '';
+        el.innerHTML = `
+            <div>
+                <div class="sub-name">${escHtml(shortId)}</div>
+                <div class="sub-meta">
+                    <span class="cid-tag">CID: ${escHtml(shortCid)}</span>
+                    ${created ? `<span class="cid-tag">${escHtml(created)}</span>` : ''}
+                </div>
+            </div>
+            <div class="sub-actions">
+                <button class="btn-sm" onclick="reconstruct('${escHtml(sub.subAccountId)}')">RECONSTRUCT</button>
+                <button class="btn-sm danger" onclick="deleteSub('${escHtml(sub.subAccountId)}')">DELETE</button>
+            </div>`;
+        list.appendChild(el);
+    });
+}
+
+// ──────────────────────────────────────────────
+//  CREATE MODAL
+// ──────────────────────────────────────────────
+function openCreateModal() {
+    document.getElementById('create-name').value = '';
+    document.getElementById('create-balance').value = '';
+    document.getElementById('create-modal').style.display = 'flex';
+    setTimeout(() => document.getElementById('create-name').focus(), 100);
+}
+function closeCreateModal() { document.getElementById('create-modal').style.display = 'none'; }
+function closeModalOnBg(e) { if (e.target === e.currentTarget) e.currentTarget.style.display = 'none'; }
+
+async function handleCreateSub() {
+    const name = document.getElementById('create-name').value.trim();
+    const balanceRaw = document.getElementById('create-balance').value;
+    const balance = parseFloat(balanceRaw);
+
+    if (!name) { toast('Name required', 'Enter a sub-account name.', 'error'); return; }
+    if (isNaN(balance) || balance < 0) { toast('Invalid amount', 'Enter a valid deposit amount.', 'error'); return; }
+
+    const btn = document.getElementById('create-btn');
+    btn.innerHTML = '<span class="spinner"></span> Deploying…';
+    btn.disabled = true;
+
+    try {
+        // POST /api/subaccount/create  —  body forwarded straight to subaccountService.createSubaccount(userId, req.body)
+        const result = await apiCreateSubaccount({ name, balance });
+        closeCreateModal();
+        toast('Shard deployed ✓', `CID: ${result.cid.slice(0, 22)}…`, 'success');
+        await fetchData();
+    } catch (err) {
+        toast('Deployment failed', err.message, 'error');
+    } finally {
+        btn.innerHTML = 'Deploy Shard';
+        btn.disabled = false;
+    }
+}
+
+// ──────────────────────────────────────────────
+//  RECONSTRUCT  (view decrypted data)
+// ──────────────────────────────────────────────
+async function reconstruct(subAccountId) {
+    try {
+        // GET /api/subaccount/:id  — fetches from IPFS gateway & decrypts server-side
+        const data = await apiGetSubaccount(subAccountId);
+
+        document.getElementById('view-timestamp').textContent =
+            `Fetched from IPFS · Decrypted at ${new Date().toLocaleTimeString()} · ID: ${subAccountId.slice(0, 20)}…`;
+
+        // data shape = decrypted payload: { subAccountId, mainAccountId, name, balance, createdAt, ...subData }
+        const fields = [
+            { key: 'Sub-Account Name',  val: data.name          || '—' },
+            { key: 'Sub-Account ID',    val: data.subAccountId  || subAccountId },
+            { key: 'Main Account',      val: data.mainAccountId || '—' },
+            { key: 'Balance',           val: data.balance != null ? `$${parseFloat(data.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—' },
+            { key: 'Created At',        val: data.createdAt ? new Date(data.createdAt).toLocaleString() : '—' },
+        ];
+
+        document.getElementById('view-fields').innerHTML = fields.map(f => `
+            <div class="decrypt-field">
+                <div class="decrypt-key">${f.key}</div>
+                <div class="decrypt-val">${escHtml(String(f.val))}</div>
+            </div>`).join('');
+
+        document.getElementById('view-modal').style.display = 'flex';
+    } catch (err) {
+        toast('Reconstruction failed', err.message, 'error');
+    }
+}
+
+// ──────────────────────────────────────────────
+//  DELETE
+// ──────────────────────────────────────────────
+async function deleteSub(subAccountId) {
+    if (!confirm('Unpin this shard from IPFS? This action cannot be undone.')) return;
+    try {
+        // DELETE /api/subaccount/:id  — unpins from Pinata + removes from in-memory DB
+        const result = await apiDeleteSubaccount(subAccountId);
+        toast('Shard deleted', result.message || 'Unpinned from IPFS network.', 'success');
+        await fetchData();
+    } catch (err) {
+        toast('Delete failed', err.message, 'error');
+    }
+}
+
+// ──────────────────────────────────────────────
+//  CHART
+// ──────────────────────────────────────────────
+function renderChart(subs) {
+    const canvas = document.getElementById('spendingChart');
+    const empty = document.getElementById('chart-empty');
+
+    if (!subs.length) {
+        canvas.style.display = 'none';
+        empty.style.display = 'block';
+        if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+        return;
+    }
+
+    canvas.style.display = 'block';
+    empty.style.display = 'none';
+
+    // list endpoint returns mapping rows (no balance — encrypted on IPFS)
+    // Chart shows shard distribution by age bucket as a useful proxy
+    const now = Date.now();
+    const buckets = { '< 1h': 0, '1–24h': 0, '> 1d': 0 };
+    subs.forEach(s => {
+        const age = now - new Date(s.createdAt).getTime();
+        if (age < 3600000) buckets['< 1h']++;
+        else if (age < 86400000) buckets['1–24h']++;
+        else buckets['> 1d']++;
+    });
+
+    const labels = Object.keys(buckets).filter(k => buckets[k] > 0);
+    const data   = labels.map(k => buckets[k]);
+
+    const colors = ['rgba(0,229,255,0.85)', 'rgba(16,185,129,0.85)', 'rgba(245,158,11,0.85)'];
+
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderColor: '#0c0e1a',
+                borderWidth: 3,
+                hoverBorderWidth: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '68%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#64748b', font: { family: 'IBM Plex Mono', size: 10 }, boxWidth: 10, padding: 14 }
+                },
+                tooltip: {
+                    callbacks: { label: ctx => ` ${ctx.raw} shard${ctx.raw !== 1 ? 's' : ''}` },
+                    backgroundColor: '#0c0e1a', borderColor: 'rgba(0,229,255,0.2)', borderWidth: 1,
+                    titleColor: '#00e5ff', bodyColor: '#e2e8f0',
+                    titleFont: { family: 'IBM Plex Mono', size: 11 },
+                    bodyFont: { family: 'IBM Plex Mono', size: 11 },
+                }
+            }
+        }
+    });
+}
+
+// ──────────────────────────────────────────────
+//  TOAST SYSTEM
+// ──────────────────────────────────────────────
+function toast(title, msg, type = 'info') {
+    const icons = { success: '✓', error: '✕', info: '◈' };
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.innerHTML = `<div class="toast-icon">${icons[type]}</div><div class="toast-msg"><div class="toast-title">${title}</div>${escHtml(msg)}</div>`;
+    container.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.4s'; setTimeout(() => el.remove(), 400); }, 3500);
+}
+
+// ──────────────────────────────────────────────
+//  MISC
+// ──────────────────────────────────────────────
+function scrollToSubs() {
+    document.getElementById('subs-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+function showIpfsInfo() {
+    toast('IPFS Explorer', 'Connect to your Pinata gateway to browse pinned CIDs.', 'info');
+}
+
+function logout() {
+    localStorage.clear();
+    toast('Logged out', 'Session terminated.', 'info');
+    setTimeout(() => window.location.href = '/', 1200);
+}
+
+function timeSince(dateStr) {
+    const secs = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+    if (secs < 60) return 'just now';
+    if (secs < 3600) return Math.floor(secs / 60) + 'm ago';
+    return Math.floor(secs / 3600) + 'h ago';
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Keyboard: Enter in create modal ──
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('create-modal').style.display === 'flex') {
+        handleCreateSub();
+    }
+    if (e.key === 'Escape') {
+        document.getElementById('create-modal').style.display = 'none';
+        document.getElementById('view-modal').style.display = 'none';
+    }
+});
+
+// ── Session clock ──
+setInterval(() => {
+    const now = new Date();
+    document.getElementById('session-time').textContent = `Session · ${now.toLocaleTimeString()}`;
+}, 1000);
+
+// ── Boot ──
+fetchData();
+</script>
+</body>
+</html>

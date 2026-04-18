@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ShardAuth</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080f;--s1:#0c0e1c;--s2:#111328;
+  --accent:#00e5ff;--green:#10b981;--danger:#ef4444;--warn:#f59e0b;
+  --border:rgba(0,229,255,0.13);--border2:rgba(0,229,255,0.3);
+  --text:#e8eaf6;--muted:#5a5d80;
+  --mono:'IBM Plex Mono',monospace;--display:'Syne',sans-serif;
+}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--mono);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:24px 16px;position:relative;overflow-x:hidden;
+}
+
+/* background */
+.bg-grid{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+.orb{position:fixed;z-index:0;border-radius:50%;pointer-events:none;filter:blur(110px);opacity:0.1}
+.orb1{width:450px;height:450px;background:#00e5ff;top:-130px;right:-100px}
+.orb2{width:380px;height:380px;background:#7c3aed;bottom:-90px;left:-90px}
+
+/* layout */
+.wrap{position:relative;z-index:1;width:100%;max-width:460px}
+
+/* header */
+.header{text-align:center;margin-bottom:32px}
+.logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:14px}
+.hex{
+  width:42px;height:42px;
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  background:var(--s2);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  animation:hexGlow 3s ease-in-out infinite;
+}
+@keyframes hexGlow{
+  0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,0.15)}
+  50%{box-shadow:0 0 0 8px rgba(0,229,255,0)}
+}
+.hex svg{width:19px;height:19px;color:var(--accent)}
+.brand{font-family:var(--display);font-size:24px;font-weight:800}
+.brand em{color:var(--accent);font-style:normal}
+.tagline{font-size:10px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;margin-top:4px}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;margin-top:10px;
+  background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);
+  border-radius:4px;padding:3px 10px;font-size:10px;color:var(--green);letter-spacing:1px;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.35}}
+
+/* card */
+.card{
+  background:var(--s1);border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;position:relative;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0.5;
+}
+
+/* tabs */
+.tabs{
+  display:grid;grid-template-columns:1fr 1fr;
+  background:var(--s2);border-bottom:1px solid var(--border);
+}
+.tab{
+  padding:13px;border:none;background:transparent;cursor:pointer;
+  font-family:var(--mono);font-size:11px;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--muted);
+  border-bottom:2px solid transparent;margin-bottom:-1px;transition:color 0.2s;
+}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* panels */
+.panel{display:none;padding:28px}
+.panel.active{display:block;animation:up 0.25s ease}
+@keyframes up{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+
+/* typography */
+.panel-title{font-family:var(--display);font-size:17px;font-weight:700;margin-bottom:5px}
+.panel-desc{font-size:11px;color:var(--muted);line-height:1.65;margin-bottom:24px}
+
+/* form */
+.field{margin-bottom:18px}
+.field label{
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1.2px;margin-bottom:8px;
+}
+.input-wrap{position:relative}
+.input-wrap svg.icon{
+  position:absolute;left:13px;top:50%;transform:translateY(-50%);
+  width:15px;height:15px;color:var(--muted);pointer-events:none;
+}
+.field input{
+  width:100%;background:var(--s2);border:1px solid var(--border);
+  border-radius:9px;color:var(--text);font-family:var(--mono);
+  font-size:13px;padding:11px 14px 11px 38px;outline:none;
+  transition:border 0.2s,box-shadow 0.2s;
+}
+.field input::placeholder{color:#2b2e4a}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,0.07)}
+.eye{
+  position:absolute;right:11px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--muted);
+  display:flex;padding:3px;transition:color 0.2s;
+}
+.eye:hover{color:var(--accent)}
+.eye svg{width:15px;height:15px}
+
+/* strength bar */
+.sbar{height:2px;border-radius:1px;background:var(--s2);margin-top:6px;overflow:hidden}
+.sfill{height:100%;border-radius:1px;width:0;transition:width 0.3s,background 0.3s}
+.shint{font-size:10px;color:var(--muted);margin-top:4px}
+
+/* shard viz */
+.viz{
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:10px;padding:14px;margin:6px 0 18px;
+}
+.viz-head{
+  font-size:9px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:2px;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.viz-tag{color:var(--accent);font-size:9px}
+.nodes{display:flex;gap:6px}
+.nd{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
+.nb{
+  width:100%;aspect-ratio:1;max-width:50px;
+  background:var(--s1);border:1px solid var(--border);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:var(--muted);transition:all 0.3s;
+}
+.nb.ping{
+  border-color:var(--warn);color:var(--warn);
+  animation:flash 0.55s ease infinite alternate;
+  box-shadow:0 0 8px rgba(245,158,11,0.2);
+}
+@keyframes flash{from{opacity:1}to{opacity:0.5}}
+.nb.done{border-color:var(--green);color:var(--green);box-shadow:0 0 8px rgba(16,185,129,0.2)}
+.nb.pin{border-color:var(--accent);color:var(--accent);box-shadow:0 0 8px rgba(0,229,255,0.18)}
+.nl{font-size:9px;color:var(--muted)}
+
+/* status */
+.status{border-radius:8px;padding:10px 14px;font-size:11px;line-height:1.5;display:none;margin-bottom:16px}
+.status.err{display:block;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);color:var(--danger)}
+.status.ok{display:block;background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);color:var(--green)}
+.status.info{display:block;background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.16);color:var(--accent)}
+
+/* wallet-id output */
+.wid-box{
+  background:var(--bg);border:1px solid var(--border2);border-radius:9px;
+  padding:16px;margin-bottom:18px;display:none;
+}
+.wid-box.show{display:block}
+.wid-label{
+  font-size:9px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:2px;margin-bottom:10px;
+}
+.wid-value{
+  font-size:13px;color:var(--accent);word-break:break-all;
+  cursor:pointer;line-height:1.7;
+}
+.wid-value:hover{color:#fff}
+.wid-copy{font-size:10px;color:var(--muted);margin-top:6px}
+.wid-warn{
+  margin-top:10px;padding:8px 12px;border-radius:6px;
+  background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);
+  font-size:10px;color:var(--warn);line-height:1.5;
+}
+
+/* submit btn */
+.btn{
+  width:100%;padding:13px;border:none;border-radius:9px;
+  font-family:var(--mono);font-size:13px;font-weight:500;
+  cursor:pointer;transition:opacity 0.18s,transform 0.13s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  letter-spacing:0.3px;
+}
+.btn-primary{background:var(--accent);color:#07080f}
+.btn-primary:hover{opacity:0.88;transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-ghost{
+  background:transparent;color:var(--accent);
+  border:1px solid var(--border2);margin-top:8px;
+}
+.btn-ghost:hover{background:rgba(0,229,255,0.06)}
+.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none!important}
+.btn.loading .bt{display:none}
+.btn.loading .sp{display:block}
+.sp{
+  width:14px;height:14px;border-radius:50%;display:none;
+  border:2px solid rgba(0,0,0,0.25);border-top-color:#07080f;
+  animation:spin 0.6s linear infinite;
+}
+.btn-ghost .sp{border-top-color:var(--accent)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* divider */
+.divider{
+  text-align:center;font-size:9px;color:var(--muted);
+  letter-spacing:2px;text-transform:uppercase;
+  margin:20px 0;position:relative;
+}
+.divider::before,.divider::after{
+  content:'';position:absolute;top:50%;
+  width:calc(50% - 55px);height:1px;background:var(--border);
+}
+.divider::before{left:0}.divider::after{right:0}
+
+.footer{text-align:center;margin-top:18px;font-size:10px;color:var(--muted);line-height:1.9}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<div class="wrap">
+  <div class="header">
+    <div class="logo">
+      <div class="hex">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div class="brand">SHARD<em>AUTH</em></div>
+    </div>
+    <div class="tagline">IPFS · Shamir Secret Sharing · Pinata</div>
+    <div class="badge"><span class="dot"></span>5-node distributed auth</div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" onclick="go('reg',this)">Register</button>
+      <button class="tab" onclick="go('login',this)">Sign In</button>
+    </div>
+
+    <!-- ══════════════════ REGISTER ══════════════════ -->
+    <div class="panel active" id="p-reg">
+      <div class="panel-title">Create Account</div>
+      <div class="panel-desc">
+        Enter a password. The backend will hash it, shred it into 5 shares via Shamir's Secret Sharing, and pin each share to a separate IPFS node via Pinata. You'll receive a <strong style="color:var(--accent)">Wallet ID</strong> — this is your login identifier.
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <div class="input-wrap">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="r-pw" placeholder="Min. 8 characters" oninput="strength(this.value)"/>
+          <button class="eye" onclick="toggleEye('r-pw',this)" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="sbar"><div class="sfill" id="sfill"></div></div>
+        <div class="shint" id="shint">Password strength</div>
+      </div>
+
+      <div class="field">
+        <label>Confirm Password</label>
+        <div class="input-wrap">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="r-pw2" placeholder="Repeat password"/>
+          <button class="eye" onclick="toggleEye('r-pw2',this)" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="divider">shard distribution</div>
+
+      <div class="viz">
+        <div class="viz-head"><span>IPFS Shard Nodes</span><span class="viz-tag">Pinata Gateway</span></div>
+        <div class="nodes">
+          <div class="nd"><div class="nb" id="rn0">S0</div><div class="nl">N-01</div></div>
+          <div class="nd"><div class="nb" id="rn1">S1</div><div class="nl">N-02</div></div>
+          <div class="nd"><div class="nb" id="rn2">S2</div><div class="nl">N-03</div></div>
+          <div class="nd"><div class="nb" id="rn3">S3</div><div class="nl">N-04</div></div>
+          <div class="nd"><div class="nb" id="rn4">S4</div><div class="nl">N-05</div></div>
+        </div>
+      </div>
+
+      <div class="status" id="r-status"></div>
+
+      <!-- Wallet ID shown after success -->
+      <div class="wid-box" id="r-wid-box">
+        <div class="wid-label">Your Wallet ID</div>
+        <div class="wid-value" id="r-wid-val" onclick="copyWid()" title="Click to copy"></div>
+        <div class="wid-copy">Click to copy</div>
+        <div class="wid-warn">
+          ⚠ Save this Wallet ID. It cannot be recovered from the server. You need it to log in.
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="r-btn" onclick="doRegister()">
+        <span class="bt">Register &amp; Generate Shards</span>
+        <div class="sp"></div>
+      </button>
+    </div>
+
+    <!-- ══════════════════ LOGIN ══════════════════ -->
+    <div class="panel" id="p-login">
+      <div class="panel-title">Sign In</div>
+      <div class="panel-desc">
+        Enter your Wallet ID and password. The backend fetches your 5 shards from IPFS, reconstructs the hash, and verifies your password using bcrypt.
+      </div>
+
+      <div class="field">
+        <label>Wallet ID</label>
+        <div class="input-wrap">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M16 12h.01"/><path d="M2 10h20"/></svg>
+          <input type="text" id="l-wid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="username"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <div class="input-wrap">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="l-pw" placeholder="Your password" autocomplete="current-password"/>
+          <button class="eye" onclick="toggleEye('l-pw',this)" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="divider">shard reconstruction</div>
+
+      <div class="viz">
+        <div class="viz-head"><span>Node Retrieval Status</span><span class="viz-tag">Live</span></div>
+        <div class="nodes">
+          <div class="nd"><div class="nb" id="ln0">S0</div><div class="nl">N-01</div></div>
+          <div class="nd"><div class="nb" id="ln1">S1</div><div class="nl">N-02</div></div>
+          <div class="nd"><div class="nb" id="ln2">S2</div><div class="nl">N-03</div></div>
+          <div class="nd"><div class="nb" id="ln3">S3</div><div class="nl">N-04</div></div>
+          <div class="nd"><div class="nb" id="ln4">S4</div><div class="nl">N-05</div></div>
+        </div>
+      </div>
+
+      <div class="status" id="l-status"></div>
+
+      <button class="btn btn-primary" id="l-btn" onclick="doLogin()">
+        <span class="bt">Authenticate</span>
+        <div class="sp"></div>
+      </button>
+      <button class="btn btn-ghost" onclick="doLogout()">
+        <span class="bt">Sign Out</span>
+        <div class="sp"></div>
+      </button>
+    </div>
+  </div>
+
+  <div class="footer">
+    bcrypt(password) → secrets.js SSS Split(5,3) → Pinata IPFS<br/>
+    Login: fetch 5 CIDs → reconstruct hash → bcrypt.compare(input, hash)<br/>
+    JWT · 15m access · 7d refresh
+  </div>
+</div>
+
+<script>
+// ── session ──────────────────────────────────────────────────────────────────
+let session = { accessToken: null, refreshToken: null };
+
+// ── tab switch ───────────────────────────────────────────────────────────────
+function go(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('p-' + name).classList.add('active');
+}
+
+// ── password visibility ───────────────────────────────────────────────────────
+function toggleEye(id, btn) {
+  const inp = document.getElementById(id);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.innerHTML = show
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+}
+
+// ── password strength ─────────────────────────────────────────────────────────
+const LEVELS = [
+  { w:'0%',   c:'transparent', t:'Password strength' },
+  { w:'20%',  c:'#ef4444',     t:'Very weak'  },
+  { w:'40%',  c:'#f97316',     t:'Weak'       },
+  { w:'60%',  c:'#f59e0b',     t:'Fair'       },
+  { w:'80%',  c:'#06b6d4',     t:'Strong'     },
+  { w:'100%', c:'#10b981',     t:'Very strong'},
+];
+function strength(v) {
+  let s = 0;
+  if (v.length >= 8)           s++;
+  if (v.length >= 14)          s++;
+  if (/[A-Z]/.test(v))         s++;
+  if (/[0-9]/.test(v))         s++;
+  if (/[^A-Za-z0-9]/.test(v))  s++;
+  const l = LEVELS[Math.min(s, 5)];
+  const f = document.getElementById('sfill');
+  f.style.width = l.w; f.style.background = l.c;
+  const h = document.getElementById('shint');
+  h.textContent = l.t;
+  h.style.color = s === 0 ? 'var(--muted)' : l.c;
+}
+
+// ── node animation ────────────────────────────────────────────────────────────
+function pingNodes(pfx) {
+  resetNodes(pfx);
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i >= 5) { clearInterval(iv); return; }
+    const n = document.getElementById(pfx + i);
+    if (n) n.className = 'nb ping';
+    i++;
+  }, 190);
+}
+function doneNodes(pfx, cls) {
+  resetNodes(pfx);
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i >= 5) { clearInterval(iv); return; }
+    const n = document.getElementById(pfx + i);
+    if (n) n.className = 'nb ' + cls;
+    i++;
+  }, 160);
+}
+function resetNodes(pfx) {
+  for (let i = 0; i < 5; i++) {
+    const n = document.getElementById(pfx + i);
+    if (n) n.className = 'nb';
+  }
+}
+
+// ── status ────────────────────────────────────────────────────────────────────
+function setStatus(id, type, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'status ' + type;
+  el.textContent = '> ' + msg;
+}
+function clearStatus(id) {
+  const el = document.getElementById(id);
+  if (el) el.className = 'status';
+}
+function setLoad(id, on) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  b.disabled = on;
+  b.classList.toggle('loading', on);
+}
+
+// ── copy wallet id ────────────────────────────────────────────────────────────
+function copyWid() {
+  const v = document.getElementById('r-wid-val');
+  navigator.clipboard.writeText(v.textContent).then(() => {
+    const o = v.textContent;
+    v.textContent = 'Copied!';
+    v.style.color = 'var(--green)';
+    setTimeout(() => { v.textContent = o; v.style.color = ''; }, 1800);
+  });
+}
+
+// ── REGISTER ──────────────────────────────────────────────────────────────────
+// POST /api/auth/register
+// Body:     { password }
+// Response: { walletId, message }
+async function doRegister() {
+  clearStatus('r-status');
+  resetNodes('rn');
+  document.getElementById('r-wid-box').classList.remove('show');
+
+  const pw  = document.getElementById('r-pw').value;
+  const pw2 = document.getElementById('r-pw2').value;
+
+  if (!pw)         { setStatus('r-status','err','Password is required.'); return; }
+  if (pw.length<8) { setStatus('r-status','err','Password must be at least 8 characters.'); return; }
+  if (pw !== pw2)  { setStatus('r-status','err','Passwords do not match.'); return; }
+
+  setLoad('r-btn', true);
+  pingNodes('rn');
+  setStatus('r-status','info','Hashing password → shredding into 5 shares → pinning to IPFS…');
+
+  try {
+    const res  = await fetch('/api/auth/register', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ password: pw }),
+    });
+    const data = await res.json();
+
+    if (res.ok || res.status === 201) {
+      doneNodes('rn', 'pin');
+      setStatus('r-status', 'ok', data.message || 'Account created. 5 shards pinned to IPFS.');
+      localStorage.setItem('accessToken', data.accessToken);
+      window.location.href = '/dashboard.html';
+      // Show the wallet ID prominently
+      document.getElementById('r-wid-val').textContent = data.walletId;
+      document.getElementById('r-wid-box').classList.add('show');
+
+      document.getElementById('r-pw').value  = '';
+      document.getElementById('r-pw2').value = '';
+    } else {
+      resetNodes('rn');
+      setStatus('r-status', 'err', data.error || data.message || 'Registration failed.');
+    }
+  } catch (err) {
+    resetNodes('rn');
+    setStatus('r-status', 'err', 'Network error: ' + err.message);
+  } finally {
+    setLoad('r-btn', false);
+  }
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+// POST /api/auth/login
+// Body:     { walletId, password }
+// Response: { accessToken, refreshToken }
+async function doLogin() {
+  clearStatus('l-status');
+  resetNodes('ln');
+
+  const walletId = document.getElementById('l-wid').value.trim();
+  const password = document.getElementById('l-pw').value;
+
+  if (!walletId) { setStatus('l-status','err','Wallet ID is required.'); return; }
+  if (!password) { setStatus('l-status','err','Password is required.'); return; }
+
+  setLoad('l-btn', true);
+  pingNodes('ln');
+  setStatus('l-status','info','Fetching 5 shards from IPFS → reconstructing hash → verifying password…');
+
+  try {
+    const res  = await fetch('/api/auth/login', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ walletId, password }),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      doneNodes('ln', 'done');
+      setStatus('l-status', 'ok', 'Authenticated. bcrypt match confirmed. JWT issued.');
+      session.accessToken  = data.accessToken;
+      session.refreshToken = data.refreshToken;
+      localStorage.setItem('accessToken', data.accessToken);
+      window.location.href = '/dashboard.html';
+      document.getElementById('l-pw').value = '';
+    } else {
+      resetNodes('ln');
+      setStatus('l-status', 'err', data.error || data.message || 'Invalid Wallet ID or password.');
+    }
+  } catch (err) {
+    resetNodes('ln');
+    setStatus('l-status', 'err', 'Network error: ' + err.message);
+  } finally {
+    setLoad('l-btn', false);
+  }
+}
+
+// ── LOGOUT ────────────────────────────────────────────────────────────────────
+// POST /api/auth/logout
+async function doLogout() {
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (session.accessToken) headers['Authorization'] = 'Bearer ' + session.accessToken;
+    const res  = await fetch('/api/auth/logout', { method: 'POST', headers });
+    const data = await res.json();
+
+    session = { accessToken: null, refreshToken: null };
+    document.getElementById('l-wid').value = '';
+    document.getElementById('l-pw').value  = '';
+    resetNodes('ln');
+    clearStatus('l-status');
+    setStatus('l-status', 'ok', data.message || 'Signed out. Clear tokens from memory.');
+  } catch {
+    setStatus('l-status','err','Logout failed.');
+  }
+}
+
+// ── keyboard submit ───────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const reg = document.getElementById('p-reg').classList.contains('active');
+  if (reg) doRegister(); else doLogin();
+});
+</script>
+</body>
+</html>
