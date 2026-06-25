@@ -509,13 +509,11 @@ async function doRegister() {
       doneNodes('rn', 'pin');
       setStatus('r-status', 'ok', data.message || 'Account created. 5 shards pinned to IPFS.');
       localStorage.setItem('accessToken', data.accessToken);
-      window.location.href = '/dashboard.html';
-      // Show the wallet ID prominently
-      document.getElementById('r-wid-val').textContent = data.walletId;
-      document.getElementById('r-wid-box').classList.add('show');
-
+      localStorage.setItem('walletId', data.walletId);
+      localStorage.setItem('newRegistration', '1');
       document.getElementById('r-pw').value  = '';
       document.getElementById('r-pw2').value = '';
+      window.location.href = '/dashboard.html';
     } else {
       resetNodes('rn');
       setStatus('r-status', 'err', data.error || data.message || 'Registration failed.');

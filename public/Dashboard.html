@@ -225,6 +225,26 @@
         /* ── Loading spinner ── */
         .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,229,255,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
         @keyframes spin { to{transform:rotate(360deg)} }
+
+        /* ── Wallet ID banner (shown after registration) ── */
+        #wallet-banner {
+            background: rgba(0,229,255,0.05); border: 1px solid rgba(0,229,255,0.3);
+            border-radius: 10px; padding: 18px 22px; margin-bottom: 28px;
+            display: none; animation: fadeIn 0.35s ease;
+        }
+        #wallet-banner.show { display: flex; align-items: flex-start; gap: 16px; }
+        .wbanner-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+        .wbanner-body { flex: 1; min-width: 0; }
+        .wbanner-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 8px; font-weight: 600; }
+        .wbanner-id {
+            font-size: 13px; color: #fff; word-break: break-all; line-height: 1.6;
+            background: rgba(0,0,0,0.35); border: 1px solid var(--border); border-radius: 6px;
+            padding: 10px 14px; cursor: pointer; transition: background 0.15s;
+        }
+        .wbanner-id:hover { background: rgba(0,229,255,0.08); }
+        .wbanner-hint { font-size: 10px; color: var(--warn); margin-top: 8px; line-height: 1.5; }
+        .wbanner-close { flex-shrink: 0; background: none; border: none; color: var(--muted2); cursor: pointer; font-size: 18px; padding: 0 4px; transition: color 0.15s; }
+        .wbanner-close:hover { color: var(--text); }
     </style>
 </head>
 <body>
@@ -255,6 +275,17 @@
             </div>
         </div>
         <button class="btn" onclick="openCreateModal()">+ Create Sub-Account</button>
+    </div>
+
+    <!-- Wallet ID banner — shown once after registration -->
+    <div id="wallet-banner">
+        <div class="wbanner-icon">⬡</div>
+        <div class="wbanner-body">
+            <div class="wbanner-title">Your Wallet ID — save this now</div>
+            <div class="wbanner-id" id="wbanner-id-val" title="Click to copy" onclick="copyBannerId()"></div>
+            <div class="wbanner-hint">⚠ This is your login identifier. Store it somewhere safe — it cannot be recovered if lost.</div>
+        </div>
+        <button class="wbanner-close" onclick="document.getElementById('wallet-banner').classList.remove('show')" title="Dismiss">×</button>
     </div>
 
     <div class="grid">
@@ -386,7 +417,25 @@ async function apiDeleteSubaccount(subAccountId) {
 //  DASHBOARD INIT
 // ──────────────────────────────────────────────
 async function fetchData() {
-    document.getElementById('wallet-display').textContent = `ID: user_123`;
+    const walletId = localStorage.getItem('walletId') || 'unknown';
+    const shortId = walletId.length > 13 ? walletId.slice(0, 8) + '…' + walletId.slice(-4) : walletId;
+    const badge = document.getElementById('wallet-display');
+    badge.textContent = `ID: ${shortId}`;
+    badge.title = walletId;          // full ID on hover
+    badge.style.cursor = 'pointer';
+    badge.onclick = () => {
+        navigator.clipboard.writeText(walletId).then(() => {
+            badge.textContent = 'Copied!';
+            setTimeout(() => { badge.textContent = `ID: ${shortId}`; }, 1600);
+        });
+    };
+
+    // Show a wallet-ID banner + toast on first arrival after registration
+    if (localStorage.getItem('newRegistration') === '1') {
+        localStorage.removeItem('newRegistration');
+        showWalletBanner(walletId);
+        toast('Account created ✓', 'Your Wallet ID is shown below. Copy and save it — you need it to log in.', 'success');
+    }
     try {
         const subs = await apiListSubaccounts();
         renderSubs(subs);
@@ -617,6 +666,21 @@ function toast(title, msg, type = 'info') {
 // ──────────────────────────────────────────────
 //  MISC
 // ──────────────────────────────────────────────
+function showWalletBanner(walletId) {
+    document.getElementById('wbanner-id-val').textContent = walletId;
+    document.getElementById('wallet-banner').classList.add('show');
+}
+
+function copyBannerId() {
+    const el = document.getElementById('wbanner-id-val');
+    navigator.clipboard.writeText(el.textContent).then(() => {
+        const orig = el.textContent;
+        el.textContent = '✓ Copied to clipboard!';
+        el.style.color = 'var(--green)';
+        setTimeout(() => { el.textContent = orig; el.style.color = ''; }, 1800);
+    });
+}
+
 function scrollToSubs() {
     document.getElementById('subs-section').scrollIntoView({ behavior: 'smooth' });
 }
